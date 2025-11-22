@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Sistema de Controle de Reagentes</title>
+</head>
+<body class="bg-gray-100 p-6">
+  <h1 class="text-3xl font-bold mb-6">Sistema de Controle de Reagentes</h1>
+
+  <div id="app" class="space-y-6">
+    <!-- BLOCO 1 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 DADOS DO REAGENTE (Informações da IU)</h2>
+      <div class="grid grid-cols-3 gap-4">
+        <input id="nomeReagente" class="p-2 border rounded" placeholder="Nome do Reagente" />
+        <input id="marca" class="p-2 border rounded" placeholder="Marca / Fabricante" />
+        <input id="tipoExame" class="p-2 border rounded" placeholder="Tipo de Exame" />
+        <input id="amostrasAceitas" class="p-2 border rounded" placeholder="Amostras Aceitas" />
+        <input id="amostrasRejeitadas" class="p-2 border rounded" placeholder="Amostras Rejeitadas" />
+        <input id="volFrascoR1" type="number" step="0.01" class="p-2 border rounded" placeholder="Volume por Frasco – R1 (mL)" />
+        <input id="volFrascoR2" type="number" step="0.01" class="p-2 border rounded" placeholder="Volume por Frasco – R2 (mL)" />
+        <input id="volTesteR1" type="number" step="0.01" class="p-2 border rounded" placeholder="Volume por Teste – R1 (µL)" />
+        <input id="volTesteR2" type="number" step="0.01" class="p-2 border rounded" placeholder="Volume por Teste – R2 (µL)" />
+        <input id="tempArmazenamento" class="p-2 border rounded" placeholder="Temperatura de Armazenamento" />
+        <input id="estAberto" type="number" class="p-2 border rounded" placeholder="Estabilidade Após Aberto (dias)" />
+        <input id="validadeFechado" type="date" class="p-2 border rounded" placeholder="Validade Fechado (data)" />
+      </div>
+      <textarea id="observacoes" class="p-2 border rounded w-full mt-4" placeholder="Observações"></textarea>
+      <div class="mt-4 flex gap-2">
+        <button onclick="salvarBloco1()" class="px-4 py-2 bg-blue-600 text-white rounded">Salvar Dados</button>
+        <button onclick="carregarDadosDefault()" class="px-4 py-2 bg-gray-200 rounded">Exemplo / Preencher</button>
+      </div>
+      <div class="mt-6">
+        <h3 class="font-semibold mb-2">Dados do Reagente (salvos)</h3>
+        <div id="displayBloco1" class="p-2 border rounded text-sm text-gray-800">Nenhum dado salvo ainda.</div>
+      </div>
+    </section>
+    <!-- EXIBIÇÃO GERAL: consolida todos os vetores -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">🔎 Exibição Geral (todos os registros salvos)</h2>
+      <div id="exibicaoGeral" class="p-2 border rounded text-sm text-gray-800">Nenhum registro salvo ainda.</div>
+    </section>
+
+    <!-- BLOCO 2 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 CONTROLE DE ESTOQUE (Frascos e Volumes)</h2>
+      <div class="grid grid-cols-3 gap-4">
+        <input id="dataRecebimento" type="date" class="p-2 border rounded" />
+        <input id="loteReceb" class="p-2 border rounded" placeholder="Lote" />
+        <input id="frascosRecebR1" type="number" class="p-2 border rounded" placeholder="Frascos Recebidos – R1" />
+        <input id="frascosRecebR2" type="number" class="p-2 border rounded" placeholder="Frascos Recebidos – R2" />
+        <input id="volTotalFrascoR1" type="number" class="p-2 border rounded" placeholder="Volume Total por Frasco – R1 (µL)" readonly />
+        <input id="volTotalFrascoR2" type="number" class="p-2 border rounded" placeholder="Volume Total por Frasco – R2 (µL)" readonly />
+        <input id="frascosRestantesR1" type="number" class="p-2 border rounded" placeholder="Frascos Restantes – R1" readonly />
+        <input id="frascosRestantesR2" type="number" class="p-2 border rounded" placeholder="Frascos Restantes – R2" readonly />
+        <select id="statusEstoque" class="p-2 border rounded">
+          <option value="OK">OK</option>
+          <option value="Atenção">Atenção</option>
+          <option value="Acabou">Acabou</option>
+        </select>
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button onclick="salvarEstoque()" class="px-4 py-2 bg-green-600 text-white rounded">Receber Lote</button>
+        <button onclick="calcularVolumesFrascos()" class="px-4 py-2 bg-gray-200 rounded">Atualizar Volumes (do Bloco 1)</button>
+      </div>
+      <div class="mt-6">
+        <h3 class="font-semibold mb-2">Entradas de Estoque (últimos)</h3>
+        <div id="listaEstoque"></div>
+      </div>
+    </section>
+
+    <!-- BLOCO 3 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 CONTROLE DE TESTES E CONSUMO</h2>
+
+      <div class="grid grid-cols-4 gap-4 items-end">
+        <div>
+          <label class="block text-sm">Volume Atual do Compartimento – R1 (µL)</label>
+          <input id="volCompartimentoR1" type="number" class="p-2 border rounded" placeholder="Digite ao reabastecer" />
+        </div>
+        <div>
+          <label class="block text-sm">Volume Atual do Compartimento – R2 (µL)</label>
+          <input id="volCompartimentoR2" type="number" class="p-2 border rounded" placeholder="Digite ao reabastecer" />
+        </div>
+        <div>
+          <label class="block text-sm">Testes Possíveis – R1</label>
+          <input id="testesPossiveisR1" type="number" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Testes Possíveis – R2</label>
+          <input id="testesPossiveisR2" type="number" class="p-2 border rounded" readonly />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-4 mt-4 items-end">
+        <div>
+          <label class="block text-sm">Testes Realizados no Dia – R1</label>
+          <input id="testesDiaR1" type="number" class="p-2 border rounded" value="0" />
+        </div>
+        <div>
+          <label class="block text-sm">Testes Realizados no Dia – R2</label>
+          <input id="testesDiaR2" type="number" class="p-2 border rounded" value="0" />
+        </div>
+        <div>
+          <label class="block text-sm">Testes Restantes – R1</label>
+          <input id="testesRestantesR1" type="number" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Testes Restantes – R2</label>
+          <input id="testesRestantesR2" type="number" class="p-2 border rounded" readonly />
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 items-center">
+        <label class="flex items-center gap-2">
+          <input id="trocarReagente" type="checkbox" class="w-5 h-5" />
+          <span>Trocar Reagente = SIM</span>
+        </label>
+        <button onclick="aplicarConsumoDia()" class="px-4 py-2 bg-blue-600 text-white rounded">Aplicar Consumo do Dia</button>
+        <button onclick="executarTrocaIfChecked()" class="px-4 py-2 bg-red-600 text-white rounded">Executar Troca (se SIM)</button>
+        <button onclick="salvarControleUso()" class="px-4 py-2 bg-green-600 text-white rounded">Salvar Controle</button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm">Testes Restantes Antes da Troca (R1)</label>
+          <input id="restAntesTrocaR1" type="number" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Data da Troca – R1</label>
+          <input id="dataTrocaR1" type="date" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Testes Restantes Antes da Troca (R2)</label>
+          <input id="restAntesTrocaR2" type="number" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Data da Troca – R2</label>
+          <input id="dataTrocaR2" type="date" class="p-2 border rounded" readonly />
+        </div>
+      </div>
+    </section>
+    <div class="mt-4">
+      <h3 class="font-semibold mb-2">Registros de Controle (últimos)</h3>
+      <div id="displayBloco3" class="p-2 border rounded">Nenhum registro ainda.</div>
+    </div>
+
+    <!-- BLOCO 4 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 CONTROLE DE VALIDADE</h2>
+      <div class="grid grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm">Data Atual</label>
+          <input id="dataAtual" type="date" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Data da Abertura – R1</label>
+          <input id="dataAberturaR1" type="date" class="p-2 border rounded" />
+        </div>
+        <div>
+          <label class="block text-sm">Data da Abertura – R2</label>
+          <input id="dataAberturaR2" type="date" class="p-2 border rounded" />
+        </div>
+        <div>
+          <label class="block text-sm">Dias Após Abertura – R1</label>
+          <input id="diasAposAberturaR1" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Dias Após Abertura – R2</label>
+          <input id="diasAposAberturaR2" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Dias Restantes (Aberto) – R1</label>
+          <input id="diasRestantesAbertoR1" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Dias Restantes (Aberto) – R2</label>
+          <input id="diasRestantesAbertoR2" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Status de Validade (Aberto)</label>
+          <input id="statusValidadeAberto" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Data de Validade Fechado</label>
+          <input id="validadeFechadoControle" type="date" class="p-2 border rounded" />
+        </div>
+        <div>
+          <label class="block text-sm">Dias Restantes Fechado</label>
+          <input id="diasRestantesFechado" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label class="block text-sm">Status de Validade (Fechado)</label>
+          <input id="statusValidadeFechado" class="p-2 border rounded" readonly />
+        </div>
+      </div>
+      <div class="mt-4">
+        <button onclick="atualizarDataAtual()" class="px-4 py-2 bg-gray-200 rounded">Atualizar Datas e Status</button>
+      </div>
+    </section>
+
+    <!-- BLOCO 5 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 HISTÓRICO DE BAIXAS DIÁRIAS</h2>
+      <div class="grid grid-cols-4 gap-4">
+        <input id="histDataUso" type="date" class="p-2 border rounded" />
+        <input id="histBiomedico" class="p-2 border rounded" placeholder="Biomédico" />
+        <input id="histTestesTotais" type="number" class="p-2 border rounded" placeholder="Testes Totais no Dia" />
+        <input id="histTestesR1" type="number" class="p-2 border rounded" placeholder="Testes Realizados – R1" />
+        <input id="histTestesR2" type="number" class="p-2 border rounded" placeholder="Testes Realizados – R2" />
+        <input id="histObservacoes" class="p-2 border rounded col-span-2" placeholder="Observações" />
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button onclick="salvarHistoricoDiario()" class="px-4 py-2 bg-indigo-600 text-white rounded">Salvar Histórico Diário</button>
+        <button onclick="limparHistoricoInputs()" class="px-4 py-2 bg-gray-200 rounded">Limpar</button>
+      </div>
+
+      <div class="mt-6">
+        <h3 class="font-semibold mb-2">Últimos lançamentos</h3>
+        <div id="listaHistorico"></div>
+      </div>
+    </section>
+
+    <!-- BLOCO 6 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 INDICADORES DE QUALIDADE DOS TESTES</h2>
+      <div class="grid grid-cols-4 gap-4">
+        <div>
+          <label>Testes Totais no Dia</label>
+          <input id="indTestesTotaisDia" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Testes Repetidos</label>
+          <input id="indTestesRepetidos" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Porcentagem de Repetição (%)</label>
+          <input id="indPorcRepeticao" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Média de Testes por Frasco</label>
+          <input id="indMediaTestesFrasco" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Consumo Médio Diário (µL)</label>
+          <input id="indConsumoMedioDiario" class="p-2 border rounded" readonly />
+        </div>
+      </div>
+      <div class="mt-4">
+        <button onclick="atualizarIndicadores()" class="px-4 py-2 bg-gray-200 rounded">Atualizar Indicadores</button>
+      </div>
+    </section>
+
+    <!-- BLOCO 7 -->
+    <section class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">📌 HISTÓRICO DE TROCAS DO REAGENTE</h2>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label>Data da Troca</label>
+          <input id="histTrocaData" type="date" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Reagente (R1/R2)</label>
+          <input id="histTrocaReagente" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Lote</label>
+          <input id="histTrocaLote" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Estoque Consumido (µL)</label>
+          <input id="histTrocaEstoqueConsumido" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Testes Realizados com o Frasco</label>
+          <input id="histTrocaTestesRealizados" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Duração do Frasco (dias)</label>
+          <input id="histTrocaDuracao" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Volume Restante no Momento da Troca</label>
+          <input id="histTrocaVolRestante" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Motivo da Troca</label>
+          <input id="histTrocaMotivo" class="p-2 border rounded" readonly />
+        </div>
+        <div>
+          <label>Usuário que Realizou a Troca</label>
+          <input id="histTrocaUsuario" class="p-2 border rounded" readonly />
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="font-semibold mb-2">Histórico de Trocas</h3>
+        <div id="listaTrocas"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Dados temporários em memória
+    const reagenteData = {};
+    const estoqueData = [];
+    const historicoDiario = [];
+    const historicoTrocas = [];
+    const controleUso = []; // registros salvos do Bloco 3 (controle de testes/consumo)
+
+    // Helpers
+    function toMicroLiters(ml){
+      return Number(ml) * 1000;
+    }
+
+    function nowDateISO(){
+      return new Date().toISOString().slice(0,10);
+    }
+
+    // BLOCO 1
+    function salvarBloco1(){
+      reagenteData.nome = document.getElementById('nomeReagente').value;
+      reagenteData.marca = document.getElementById('marca').value;
+      reagenteData.tipoExame = document.getElementById('tipoExame').value;
+      reagenteData.amostrasAceitas = document.getElementById('amostrasAceitas').value;
+      reagenteData.amostrasRejeitadas = document.getElementById('amostrasRejeitadas').value;
+      reagenteData.volFrascoR1_mL = parseFloat(document.getElementById('volFrascoR1').value) || 0;
+      reagenteData.volFrascoR2_mL = parseFloat(document.getElementById('volFrascoR2').value) || 0;
+      reagenteData.volTesteR1_uL = parseFloat(document.getElementById('volTesteR1').value) || 0;
+      reagenteData.volTesteR2_uL = parseFloat(document.getElementById('volTesteR2').value) || 0;
+      reagenteData.temp = document.getElementById('tempArmazenamento').value;
+      reagenteData.estAberto = parseInt(document.getElementById('estAberto').value) || 0;
+      reagenteData.validadeFechado = document.getElementById('validadeFechado').value;
+      reagenteData.observacoes = document.getElementById('observacoes').value;
+
+      // atualiza campos automáticos do estoque
+      document.getElementById('volTotalFrascoR1').value = toMicroLiters(reagenteData.volFrascoR1_mL);
+      document.getElementById('volTotalFrascoR2').value = toMicroLiters(reagenteData.volFrascoR2_mL);
+
+      // limpa inputs
+      document.querySelectorAll('#app section:nth-child(1) input, #app section:nth-child(1) textarea').forEach(el => el.value='');
+      // atualizar exibição logo abaixo do Bloco 1
+      atualizarDadosBloco1();
+      atualizarExibicaoGeral();
+
+      alert('Dados do reagente salvos em memória. Use "Receber Lote" para criar estoque.');
+    }
+
+    function carregarDadosDefault(){
+      document.getElementById('nomeReagente').value = 'Reagente X';
+      document.getElementById('marca').value = 'Marca Y';
+      document.getElementById('tipoExame').value = 'Bioquímica';
+      document.getElementById('amostrasAceitas').value = 'Sangue, Soro';
+      document.getElementById('amostrasRejeitadas').value = 'Hemolisado';
+      document.getElementById('volFrascoR1').value = '10';
+      document.getElementById('volFrascoR2').value = '5';
+      document.getElementById('volTesteR1').value = '50';
+      document.getElementById('volTesteR2').value = '30';
+      document.getElementById('tempArmazenamento').value = '2-8°C';
+      document.getElementById('estAberto').value = '30';
+      document.getElementById('validadeFechado').value = nowDateISO();
+      document.getElementById('observacoes').value = '';
+    }
+
+    // BLOCO 2
+    function calcularVolumesFrascos(){
+      const volR1 = reagenteData.volFrascoR1_mL || 0;
+      const volR2 = reagenteData.volFrascoR2_mL || 0;
+      document.getElementById('volTotalFrascoR1').value = toMicroLiters(volR1);
+      document.getElementById('volTotalFrascoR2').value = toMicroLiters(volR2);
+      alert('Volumes por frasco atualizados a partir do Bloco 1.');
+    }
+
+    function salvarEstoque(){
+      const item = {
+        dataRecebimento: document.getElementById('dataRecebimento').value || nowDateISO(),
+        lote: document.getElementById('loteReceb').value,
+        frascosR1: parseInt(document.getElementById('frascosRecebR1').value) || 0,
+        frascosR2: parseInt(document.getElementById('frascosRecebR2').value) || 0,
+        volPorFrascoR1_uL: parseInt(document.getElementById('volTotalFrascoR1').value) || (toMicroLiters(reagenteData.volFrascoR1_mL)||0),
+        volPorFrascoR2_uL: parseInt(document.getElementById('volTotalFrascoR2').value) || (toMicroLiters(reagenteData.volFrascoR2_mL)||0),
+        status: document.getElementById('statusEstoque').value
+      };
+      estoqueData.push(item);
+      // atualiza frascos restantes (simples soma dos estoques)
+      const totalR1 = estoqueData.reduce((s,i)=>s + (i.frascosR1||0),0);
+      const totalR2 = estoqueData.reduce((s,i)=>s + (i.frascosR2||0),0);
+      document.getElementById('frascosRestantesR1').value = totalR1;
+      document.getElementById('frascosRestantesR2').value = totalR2;
+
+      // limpa inputs
+      document.getElementById('dataRecebimento').value='';
+      document.getElementById('loteReceb').value='';
+      document.getElementById('frascosRecebR1').value='';
+      document.getElementById('frascosRecebR2').value='';
+
+      // atualiza a exibição do vetor de estoque logo abaixo do formulário
+      atualizarListaEstoque();
+      atualizarExibicaoGeral();
+
+      alert('Lote salvo no estoque (memória).');
+    }
+
+    // BLOCO 3
+    function atualizarTestesPossiveis(){
+      const volCompR1 = parseFloat(document.getElementById('volCompartimentoR1').value) || 0;
+      const volCompR2 = parseFloat(document.getElementById('volCompartimentoR2').value) || 0;
+      const volTesteR1 = reagenteData.volTesteR1_uL || 1; // evita divisão por zero
+      const volTesteR2 = reagenteData.volTesteR2_uL || 1;
+
+      const possiveisR1 = Math.floor(volCompR1 / volTesteR1);
+      const possiveisR2 = Math.floor(volCompR2 / volTesteR2);
+      document.getElementById('testesPossiveisR1').value = possiveisR1;
+      document.getElementById('testesPossiveisR2').value = possiveisR2;
+
+      const testesDiaR1 = parseInt(document.getElementById('testesDiaR1').value) || 0;
+      const testesDiaR2 = parseInt(document.getElementById('testesDiaR2').value) || 0;
+
+      document.getElementById('testesRestantesR1').value = Math.max(possiveisR1 - testesDiaR1, 0);
+      document.getElementById('testesRestantesR2').value = Math.max(possiveisR2 - testesDiaR2, 0);
+
+      document.getElementById('restAntesTrocaR1').value = document.getElementById('testesRestantesR1').value;
+      document.getElementById('restAntesTrocaR2').value = document.getElementById('testesRestantesR2').value;
+    }
+
+    function aplicarConsumoDia(){
+      atualizarTestesPossiveis();
+      // subtrai do compartimento
+      const volTesteR1 = reagenteData.volTesteR1_uL || 0;
+      const volTesteR2 = reagenteData.volTesteR2_uL || 0;
+      const testesR1 = parseInt(document.getElementById('testesDiaR1').value) || 0;
+      const testesR2 = parseInt(document.getElementById('testesDiaR2').value) || 0;
+
+      let volAtualR1 = parseFloat(document.getElementById('volCompartimentoR1').value) || 0;
+      let volAtualR2 = parseFloat(document.getElementById('volCompartimentoR2').value) || 0;
+
+      volAtualR1 = Math.max(volAtualR1 - (testesR1 * volTesteR1), 0);
+      volAtualR2 = Math.max(volAtualR2 - (testesR2 * volTesteR2), 0);
+
+      document.getElementById('volCompartimentoR1').value = volAtualR1;
+      document.getElementById('volCompartimentoR2').value = volAtualR2;
+
+      atualizarTestesPossiveis();
+
+      // registra no histórico diário automaticamente
+      const hist = {
+        data: document.getElementById('histDataUso').value || nowDateISO(),
+        biomedico: document.getElementById('histBiomedico').value || '—',
+        testesTotais: (testesR1 + testesR2),
+        testesR1: testesR1,
+        testesR2: testesR2,
+        volConsumidoR1_uL: testesR1 * volTesteR1,
+        volConsumidoR2_uL: testesR2 * volTesteR2,
+        observacoes: ''
+      };
+      historicoDiario.push(hist);
+      atualizarListaHistorico();
+
+      // atualizar exibição geral
+      atualizarExibicaoGeral();
+
+      alert('Consumo aplicado e histórico diário registrado em memória.');
+    }
+
+    function executarTrocaIfChecked(){
+      if(!document.getElementById('trocarReagente').checked){
+        alert('Marque "Trocar Reagente = SIM" para executar a troca.');
+        return;
+      }
+      // registra troca para R1 e R2 se necessário
+      const dataTroca = nowDateISO();
+
+      // Exemplo de captura de dados: cria 1 item de troca para R1 e outro para R2
+      ['R1','R2'].forEach(re => {
+        const volComp = parseFloat(document.getElementById(re === 'R1' ? 'volCompartimentoR1' : 'volCompartimentoR2').value) || 0;
+        const volTotalPorFrasco = parseInt(document.getElementById(re === 'R1' ? 'volTotalFrascoR1' : 'volTotalFrascoR2').value) || 0;
+        const testesRealizados = (parseInt(document.getElementById(re === 'R1' ? 'testesPossiveisR1' : 'testesPossiveisR2').value)||0) - (parseInt(document.getElementById(re === 'R1' ? 'testesRestantesR1' : 'testesRestantesR2').value)||0);
+
+        const troca = {
+          data: dataTroca,
+          reagente: re,
+          lote: estoqueData.length ? estoqueData[estoqueData.length-1].lote : '—',
+          estoqueConsumido_uL: volTotalPorFrasco - volComp,
+          testesRealizados: testesRealizados,
+          duracaoDias: 0,
+          volRestante_uL: volComp,
+          motivo: 'Troca manual',
+          usuario: 'Usuário'
+        };
+        historicoTrocas.push(troca);
+      });
+
+      // reset dos volumes e testes (simplesmente zerar compartimentos)
+      document.getElementById('volCompartimentoR1').value = 0;
+      document.getElementById('volCompartimentoR2').value = 0;
+      document.getElementById('testesDiaR1').value = 0;
+      document.getElementById('testesDiaR2').value = 0;
+      document.getElementById('trocarReagente').checked = false;
+
+      atualizarListaTrocas();
+      atualizarExibicaoGeral();
+      atualizarTestesPossiveis();
+      alert('Troca executada: histórico salvo e volumes resetados.');
+    }
+
+    // BLOCO 4
+    function atualizarDataAtual(){
+      document.getElementById('dataAtual').value = nowDateISO();
+      const hoje = new Date(nowDateISO());
+
+      const abrirR1 = document.getElementById('dataAberturaR1').value;
+      const abrirR2 = document.getElementById('dataAberturaR2').value;
+      const estAberto = reagenteData.estAberto || 0;
+
+      if(abrirR1){
+        const dif1 = Math.floor((hoje - new Date(abrirR1)) / (1000*60*60*24));
+        document.getElementById('diasAposAberturaR1').value = dif1;
+        document.getElementById('diasRestantesAbertoR1').value = Math.max(estAberto - dif1, 0);
+      }
+      if(abrirR2){
+        const dif2 = Math.floor((hoje - new Date(abrirR2)) / (1000*60*60*24));
+        document.getElementById('diasAposAberturaR2').value = dif2;
+        document.getElementById('diasRestantesAbertoR2').value = Math.max(estAberto - dif2, 0);
+      }
+
+      const validadeFechado = reagentedefaultdate(document.getElementById('validadeFechadoControle').value || reagenteData.validadeFechado);
+      if(validadeFechado){
+        const diasRestFechado = Math.ceil((new Date(validadeFechado) - hoje) / (1000*60*60*24));
+        document.getElementById('diasRestantesFechado').value = diasRestFechado;
+        document.getElementById('statusValidadeFechado').value = diasRestFechado < 0 ? 'Vencido' : 'OK';
+      }
+
+      // status aberto simples
+      const diasRemR1 = parseInt(document.getElementById('diasRestantesAbertoR1').value) || 0;
+      const diasRemR2 = parseInt(document.getElementById('diasRestantesAbertoR2').value) || 0;
+      document.getElementById('statusValidadeAberto').value = (diasRemR1<=0 || diasRemR2<=0) ? 'Atenção' : 'OK';
+
+      alert('Datas e status atualizados.');
+    }
+
+    function reagentedefaultdate(v){
+      if(!v) return null; return v;
+    }
+
+    // BLOCO 5
+    function salvarHistoricoDiario(){
+      const entry = {
+        data: document.getElementById('histDataUso').value || nowDateISO(),
+        biomedico: document.getElementById('histBiomedico').value || '—',
+        testesTotais: parseInt(document.getElementById('histTestesTotais').value) || 0,
+        testesR1: parseInt(document.getElementById('histTestesR1').value) || 0,
+        testesR2: parseInt(document.getElementById('histTestesR2').value) || 0,
+        volConsumidoR1_uL: (parseInt(document.getElementById('histTestesR1').value)||0) * (reagenteData.volTesteR1_uL||0),
+        volConsumidoR2_uL: (parseInt(document.getElementById('histTestesR2').value)||0) * (reagenteData.volTesteR2_uL||0),
+        observacoes: document.getElementById('histObservacoes').value || ''
+      };
+      historicoDiario.push(entry);
+      atualizarListaHistorico();
+      atualizarExibicaoGeral();
+      limparHistoricoInputs();
+      alert('Registro diário salvo (memória).');
+    }
+
+    function limparHistoricoInputs(){
+      document.getElementById('histDataUso').value='';
+      document.getElementById('histBiomedico').value='';
+      document.getElementById('histTestesTotais').value='';
+      document.getElementById('histTestesR1').value='';
+      document.getElementById('histTestesR2').value='';
+      document.getElementById('histObservacoes').value='';
+    }
+
+    function atualizarListaHistorico(){
+      const el = document.getElementById('listaHistorico');
+      el.innerHTML = '';
+      historicoDiario.slice().reverse().forEach(h => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border-b';
+        div.innerText = `${h.data} — ${h.biomedico} — Totais: ${h.testesTotais} — R1:${h.testesR1} R2:${h.testesR2} — Vols: R1 ${h.volConsumidoR1_uL}µL R2 ${h.volConsumidoR2_uL}µL`;
+        el.appendChild(div);
+      });
+    }
+
+    // EXIBIÇÃO GERAL: renderiza todos os vetores/objetos salvos
+    function atualizarExibicaoGeral(){
+      const el = document.getElementById('exibicaoGeral');
+      el.innerHTML = '';
+
+      // Reagente
+      const secReag = document.createElement('div');
+      secReag.className = 'mb-4';
+      const headerReag = '<div class="font-semibold">Dados do Reagente</div>';
+      if(Object.keys(reagenteData).length){
+        secReag.innerHTML = headerReag + `
+          <div class="text-sm">Nome: ${reagenteData.nome || '—'}</div>
+          <div class="text-sm">Marca: ${reagenteData.marca || '—'}</div>
+          <div class="text-sm">Vol Frasco R1: ${reagenteData.volFrascoR1_mL || 0} mL (${toMicroLiters(reagenteData.volFrascoR1_mL||0)} µL)</div>
+          <div class="text-sm">Vol Frasco R2: ${reagenteData.volFrascoR2_mL || 0} mL (${toMicroLiters(reagenteData.volFrascoR2_mL||0)} µL)</div>
+        `;
+      } else {
+        secReag.innerHTML = headerReag + '<div class="text-gray-600 text-sm">Nenhum dado do reagente salvo.</div>';
+      }
+      el.appendChild(secReag);
+
+      // Estoque
+      const secEst = document.createElement('div');
+      secEst.className = 'mb-4';
+      secEst.innerHTML = `<div class="font-semibold">Controle de Estoque (últimos)</div>`;
+      if(estoqueData.length === 0){
+        secEst.innerHTML += '<div class="text-gray-600 text-sm">Nenhum lote registrado.</div>';
+      } else {
+        const ul = document.createElement('div');
+        ul.className = 'text-sm';
+        estoqueData.forEach(item => {
+          const row = document.createElement('div');
+          row.innerText = `${item.dataRecebimento} — Lote:${item.lote} — R1:${item.frascosR1} R2:${item.frascosR2} — Vol/Frasco R1:${item.volPorFrascoR1_uL}µL`;
+          ul.appendChild(row);
+        });
+        secEst.appendChild(ul);
+      }
+      el.appendChild(secEst);
+
+      // Controle uso (Bloco 3)
+      const secCtrl = document.createElement('div');
+      secCtrl.className = 'mb-4';
+      secCtrl.innerHTML = `<div class="font-semibold">Controle de Uso (registros)</div>`;
+      if(controleUso.length === 0){
+        secCtrl.innerHTML += '<div class="text-gray-600 text-sm">Nenhum registro de controle.</div>';
+      } else {
+        const ul = document.createElement('div');
+        ul.className = 'text-sm';
+        controleUso.forEach(r => {
+          const row = document.createElement('div');
+          row.innerText = `${r.timestamp} — R1:${r.volCompartimentoR1_uL}µL R2:${r.volCompartimentoR2_uL}µL — Testes R1:${r.testesRealizadosDiaR1} R2:${r.testesRealizadosDiaR2}`;
+          ul.appendChild(row);
+        });
+        secCtrl.appendChild(ul);
+      }
+      el.appendChild(secCtrl);
+
+      // Histórico diário
+      const secHist = document.createElement('div');
+      secHist.className = 'mb-4';
+      secHist.innerHTML = `<div class="font-semibold">Histórico Diário</div>`;
+      if(historicoDiario.length === 0){
+        secHist.innerHTML += '<div class="text-gray-600 text-sm">Nenhum registro diário.</div>';
+      } else {
+        const ul = document.createElement('div');
+        ul.className = 'text-sm';
+        historicoDiario.forEach(h => {
+          const row = document.createElement('div');
+          row.innerText = `${h.data} — Totais:${h.testesTotais} — R1:${h.testesR1} R2:${h.testesR2}`;
+          ul.appendChild(row);
+        });
+        secHist.appendChild(ul);
+      }
+      el.appendChild(secHist);
+
+      // Histórico de trocas
+      const secTrocas = document.createElement('div');
+      secTrocas.className = 'mb-0';
+      secTrocas.innerHTML = `<div class="font-semibold">Histórico de Trocas</div>`;
+      if(historicoTrocas.length === 0){
+        secTrocas.innerHTML += '<div class="text-gray-600 text-sm">Nenhuma troca registrada.</div>';
+      } else {
+        const ul = document.createElement('div');
+        ul.className = 'text-sm';
+        historicoTrocas.forEach(t => {
+          const row = document.createElement('div');
+          row.innerText = `${t.data} — ${t.reagente} — Lote:${t.lote} — Consumido:${t.estoqueConsumido_uL}µL`;
+          ul.appendChild(row);
+        });
+        secTrocas.appendChild(ul);
+      }
+      el.appendChild(secTrocas);
+    }
+
+    // Exibe os dados do reagente salvos logo abaixo do Bloco 1
+    function atualizarDadosBloco1(){
+      const el = document.getElementById('displayBloco1');
+      if(!reagenteData || Object.keys(reagenteData).length === 0){
+        el.innerHTML = '<div class="text-gray-600">Nenhum dado salvo ainda.</div>';
+        return;
+      }
+      const html = `
+        <div class="grid grid-cols-2 gap-2">
+          <div><strong>Nome:</strong> ${reagenteData.nome || '—'}</div>
+          <div><strong>Marca:</strong> ${reagenteData.marca || '—'}</div>
+          <div><strong>Tipo de Exame:</strong> ${reagenteData.tipoExame || '—'}</div>
+          <div><strong>Amostras Aceitas:</strong> ${reagenteData.amostrasAceitas || '—'}</div>
+          <div><strong>Amostras Rejeitadas:</strong> ${reagenteData.amostrasRejeitadas || '—'}</div>
+          <div><strong>Vol. Frasco R1:</strong> ${reagenteData.volFrascoR1_mL || 0} mL (${toMicroLiters(reagenteData.volFrascoR1_mL||0)} µL)</div>
+          <div><strong>Vol. Frasco R2:</strong> ${reagenteData.volFrascoR2_mL || 0} mL (${toMicroLiters(reagenteData.volFrascoR2_mL||0)} µL)</div>
+          <div><strong>Vol. por Teste R1:</strong> ${reagenteData.volTesteR1_uL || 0} µL</div>
+          <div><strong>Vol. por Teste R2:</strong> ${reagenteData.volTesteR2_uL || 0} µL</div>
+          <div><strong>Temp. Armazenamento:</strong> ${reagenteData.temp || '—'}</div>
+          <div><strong>Estabilidade (aberto):</strong> ${reagenteData.estAberto || 0} dias</div>
+          <div><strong>Validade (fechado):</strong> ${reagenteData.validadeFechado || '—'}</div>
+          <div class="col-span-2"><strong>Observações:</strong> ${reagenteData.observacoes || '—'}</div>
+        </div>
+      `;
+      el.innerHTML = html;
+    }
+
+    // Atualiza a exibição do vetor estoqueData logo abaixo do Bloco 2
+    function atualizarListaEstoque(){
+      const el = document.getElementById('listaEstoque');
+      el.innerHTML = '';
+      if(estoqueData.length === 0){
+        el.innerHTML = '<div class="p-2 text-gray-600">Nenhum lote recebido ainda.</div>';
+        return;
+      }
+      estoqueData.slice().reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border-b';
+        div.innerText = `${item.dataRecebimento} — Lote: ${item.lote} — Frascos R1:${item.frascosR1} R2:${item.frascosR2} — Vol/Frasco R1:${item.volPorFrascoR1_uL}µL R2:${item.volPorFrascoR2_uL}µL — Status:${item.status}`;
+        el.appendChild(div);
+      });
+    }
+
+    // SALVAMENTO E EXIBIÇÃO DO BLOCO 3
+    function salvarControleUso(){
+      const registro = {
+        timestamp: nowDateISO(),
+        volCompartimentoR1_uL: parseFloat(document.getElementById('volCompartimentoR1').value) || 0,
+        volCompartimentoR2_uL: parseFloat(document.getElementById('volCompartimentoR2').value) || 0,
+        testesPossiveisR1: parseInt(document.getElementById('testesPossiveisR1').value) || 0,
+        testesPossiveisR2: parseInt(document.getElementById('testesPossiveisR2').value) || 0,
+        testesRealizadosDiaR1: parseInt(document.getElementById('testesDiaR1').value) || 0,
+        testesRealizadosDiaR2: parseInt(document.getElementById('testesDiaR2').value) || 0,
+        testesRestantesR1: parseInt(document.getElementById('testesRestantesR1').value) || 0,
+        testesRestantesR2: parseInt(document.getElementById('testesRestantesR2').value) || 0,
+        trocarReagente: document.getElementById('trocarReagente').checked,
+        dataTrocaR1: document.getElementById('dataTrocaR1').value || '',
+        dataTrocaR2: document.getElementById('dataTrocaR2').value || ''
+      };
+      controleUso.push(registro);
+      atualizarListaControleUso();
+      atualizarExibicaoGeral();
+      alert('Registro de controle salvo (memória) e exibido abaixo do bloco.');
+    }
+
+    function atualizarListaControleUso(){
+      const el = document.getElementById('displayBloco3');
+      el.innerHTML = '';
+      if(controleUso.length === 0){
+        el.innerHTML = '<div class="text-gray-600 p-2">Nenhum registro ainda.</div>';
+        return;
+      }
+      controleUso.slice().reverse().forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border-b text-sm';
+        div.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div><strong>Data:</strong> ${r.timestamp}</div>
+            <div><strong>Trocar:</strong> ${r.trocarReagente ? 'SIM' : 'NÃO'}</div>
+            <div><strong>Vol Compart R1:</strong> ${r.volCompartimentoR1_uL} µL</div>
+            <div><strong>Vol Compart R2:</strong> ${r.volCompartimentoR2_uL} µL</div>
+            <div><strong>Testes Possíveis R1:</strong> ${r.testesPossiveisR1}</div>
+            <div><strong>Testes Possíveis R2:</strong> ${r.testesPossiveisR2}</div>
+            <div><strong>Testes Realizados R1:</strong> ${r.testesRealizadosDiaR1}</div>
+            <div><strong>Testes Realizados R2:</strong> ${r.testesRealizadosDiaR2}</div>
+            <div><strong>Testes Restantes R1:</strong> ${r.testesRestantesR1}</div>
+            <div><strong>Testes Restantes R2:</strong> ${r.testesRestantesR2}</div>
+            <div><strong>Data Troca R1:</strong> ${r.dataTrocaR1 || '—'}</div>
+            <div><strong>Data Troca R2:</strong> ${r.dataTrocaR2 || '—'}</div>
+          </div>
+        `;
+        el.appendChild(div);
+      });
+    }
+
+    // BLOCO 6
+    function atualizarIndicadores(){
+      const totalDia = historicoDiario.reduce((s,i)=>s + (i.testesTotais||0),0);
+      const repetidos = 0; // não temos dados de repetição por enquanto
+      const porc = totalDia === 0 ? 0 : Math.round((repetidos / totalDia) * 100);
+      const mediaTestesPorFrasco = (()=>{
+        const totalFrascos = estoqueData.reduce((s,i)=>s + (i.frascosR1||0) + (i.frascosR2||0),0) || 1;
+        const totalTestes = historicoDiario.reduce((s,i)=>s + (i.testesTotais||0),0);
+        return (totalTestes / totalFrascos).toFixed(2);
+      })();
+      const consumoMedio = (()=>{
+        const dias = Math.max(new Set(historicoDiario.map(h=>h.data)).size,1);
+        const consumoTotal = historicoDiario.reduce((s,i)=>s + (i.volConsumidoR1_uL||0) + (i.volConsumidoR2_uL||0),0);
+        return Math.round(consumoTotal / dias);
+      })();
+
+      document.getElementById('indTestesTotaisDia').value = totalDia;
+      document.getElementById('indTestesRepetidos').value = repetidos;
+      document.getElementById('indPorcRepeticao').value = porc;
+      document.getElementById('indMediaTestesFrasco').value = mediaTestesPorFrasco;
+      document.getElementById('indConsumoMedioDiario').value = consumoMedio;
+
+      alert('Indicadores atualizados (memória).');
+    }
+
+    // BLOCO 7
+    function atualizarListaTrocas(){
+      const el = document.getElementById('listaTrocas');
+      el.innerHTML = '';
+      historicoTrocas.slice().reverse().forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border-b';
+        div.innerText = `${t.data} — ${t.reagente} — Lote:${t.lote} — Consumido:${t.estoqueConsumido_uL}µL — Testes:${t.testesRealizados} — Vol Rest:${t.volRestante_uL}µL — Usuário:${t.usuario}`;
+        el.appendChild(div);
+      });
+    }
+
+    // Inicializações
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('dataAtual').value = nowDateISO();
+      atualizarTestesPossiveis();
+      atualizarListaHistorico();
+      atualizarListaTrocas();
+      atualizarListaEstoque();
+      atualizarDadosBloco1();
+      atualizarListaControleUso();
+      atualizarExibicaoGeral();
+    });
+  </script>
+</body>
+</html>
